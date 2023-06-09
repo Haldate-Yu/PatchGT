@@ -5,13 +5,15 @@ from args import Args
 from torch_geometric.datasets import TUDataset
 from model.patch_model import patchGT_TU
 from cluster import eigencluster_connect, group_number_count
+import warnings
+import utils
 
-if __name__ == '__main__':
+warnings.filterwarnings("ignore")
 
-    args = Args()
-    args = args.update_args()
 
-    dataset = TUDataset(root='dataset/', name=args.dataset, use_node_attr=True, use_edge_attr=True)
+def run(args):
+    dataset = TUDataset(root='../data/', name=args.dataset, use_node_attr=True, use_edge_attr=True)
+    args.dataset_type = 'TU'
     args.input_embd = dataset.num_node_features
     args.num_tasks = dataset.num_classes
     args.num_node_features = dataset.num_node_features
@@ -66,11 +68,39 @@ if __name__ == '__main__':
 
     model.to(args.device)
     args.model = model.__class__.__name__
+    print("Model Parameters: ", utils.num_trainable_parameters(model))
+    args.total_params = utils.num_trainable_parameters(model)
 
     evaluator = None
 
-    train(args, traingraphs, testgraphs, args.batch_size, args.test_batch_size, color_list, center_list, color_number,
-          model, test_color_list, test_color_number, test_center_list, test_max_length, max_length=max_length,
-          x_dim=args.n_embd, evaluator=evaluator, sender_list=sender_list,
-          receiver_list=receiver_list, test_sender_list=test_sender_list, test_receiver_list=test_receiver_list,
-          group_number=group_number, test_group_number=test_group_number)
+    best_acc, total_time, avg_time = train(args, traingraphs, testgraphs, args.batch_size, args.test_batch_size,
+                                           color_list, center_list, color_number,
+                                           model, test_color_list, test_color_number, test_center_list, test_max_length,
+                                           max_length=max_length,
+                                           x_dim=args.n_embd, evaluator=evaluator, sender_list=sender_list,
+                                           receiver_list=receiver_list, test_sender_list=test_sender_list,
+                                           test_receiver_list=test_receiver_list,
+                                           group_number=group_number, test_group_number=test_group_number)
+    return best_acc, total_time, avg_time
+
+
+if __name__ == '__main__':
+    args = Args()
+    args = args.update_args()
+
+    utils.seed_everything(args.seed)
+
+    tests, total_time_list, avg_time_list = [], [], []
+
+    for run_id in range(args.runs):
+        print("Now RUNNING: {}".format(run_id))
+        final_test, total_time, avg_time = run(args)
+
+        tests.append(final_test)
+        total_time_list.append(total_time)
+        avg_time_list.append(avg_time)
+
+    # final results
+    utils.results_to_file(args, np.mean(tests), np.std(tests),
+                          np.mean(total_time_list), np.std(total_time_list),
+                          np.mean(avg_time_list), np.std(avg_time_list))

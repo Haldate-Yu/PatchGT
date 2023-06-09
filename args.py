@@ -16,12 +16,13 @@ class Args:
         # setup
         self.parser.add_argument('--device', default='cuda:0' if torch.cuda.is_available() else 'cpu',
                                  help='cuda:[d] | cpu')
-
+        self.parser.add_argument('--runs', type=int, default=10, help='multiple runs to conduct experiment')
         self.parser.add_argument('--seed', type=int, default=314, help='random seed to reproduce performance/dataset')
 
         # dataset
         self.parser.add_argument('--dataset', default="DD",
-                                 help='Select datase -- ogbg-molhiv | ogbg-molpcba| ogbg-ppa | ogbg-molbace|ogbg-molbbbp | PROTEINS| DD |MUTAG|PTC_MR|COLLAB|Mutagenicity|ENZYMES')
+                                 help='Select dataset -- ogbg-molhiv | ogbg-molpcba| ogbg-ppa | ogbg-molbace|ogbg-molbbbp | PROTEINS| DD |MUTAG|PTC_MR|COLLAB|Mutagenicity|ENZYMES')
+        self.parser.add_argument('--dataset_type', default='TU', help='Select dataset type -- TU | OGB')
         self.parser.add_argument('--batch_size', type=int, default=64, help='batch size')  # DD 6
         self.parser.add_argument('--test_batch_size', type=int, default=16, help='test batch size')
         self.parser.add_argument('--load_processed_dataset', default=False, action='store_true',
@@ -105,18 +106,22 @@ class Args:
                                  help='load device: cuda:[d] | cpu')
         self.parser.add_argument('--epochs_end', type=int, default=100, help='model in which epoch to load')
 
+        # Some Critical Params (memory, params)
+        self.parser.add_argument('--total_params', type=int, default=0)
+        self.parser.add_argument('--memory_usage', type=int, default=0)
+
     def update_args(self):
         args = self.parser.parse_args()
         args.time = '{0:%Y_%m_%d_%H_%M_%S}'.format(datetime.now())
 
         # output dataset
-        args.dir_output = 'output/'
+        args.dir_output = 'results/'
         args.fname = args.gnn_type + '_' + args.coarse_gnn_type + '_' + args.dataset + args.time
         args.experiment_path = args.dir_output + args.fname
         args.model_save_path = args.experiment_path + '/' + 'model_save/'
         args.logging_path = args.experiment_path + '/' + 'logging/'
 
-        args.dataset_dir = 'data/' + args.dataset
+        args.dataset_dir = '../data/' + args.dataset
         args.current_model_save_path = args.model_save_path
         args.logging_epoch_path = args.logging_path + 'epoch_history.csv'
 

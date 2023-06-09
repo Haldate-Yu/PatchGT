@@ -8,8 +8,10 @@ import numpy as np
 from collections import defaultdict
 from losses import AUCMLoss, PESG
 import json
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import os
+import time
+import utils
 
 
 def train_batch_binary(args, batch_g, color_list, center_list, color_number, model,
@@ -60,8 +62,8 @@ def train_batch_binary_FLAG(args, batch_g, color_list, center_list, color_number
     true_y = g.y.to(torch.float32)
     is_labeled = true_y == true_y
     forward = lambda perturb: \
-    model(batch_g, color_list, center_list, color_number, batch_size, sender_list, receiver_list, perturb).to(
-        torch.float32)[is_labeled]
+        model(batch_g, color_list, center_list, color_number, batch_size, sender_list, receiver_list, perturb).to(
+            torch.float32)[is_labeled]
 
     target = true_y[is_labeled]
     perturb_shape = (g.x.shape[0], args.n_embd)
@@ -208,7 +210,12 @@ def train(args, traingraphs, testgraphs, batch_size, test_batch_size, color_list
     epoch = 0
     losses = []
     best_auc = 0
+
+    t0 = time.time()
+    per_epoch_time = []
+
     while epoch < args.epochs:
+        start = time.time()
         # shuffle
         if args.optimizer == 'auroc':
             if epoch == 10 or epoch == 20:
@@ -229,6 +236,12 @@ def train(args, traingraphs, testgraphs, batch_size, test_batch_size, color_list
         if args.use_schedule and args.optimizer == 'adam':
             scheduler.step()
         losses.append(loss.item())
+
+        # memory usage
+        if epoch == 1:
+            mem = utils.print_gpu_utilization(0)  # Using CUDA_VISIBLE_DEVICES
+            args.memory_usage = mem
+
         epoch += 1
         print('Epoch: {}/{}, train loss: {:.6f}'.format(epoch, args.epochs, loss.cpu().item()))
         if epoch % args.epochs_eval == 0:
@@ -247,25 +260,31 @@ def train(args, traingraphs, testgraphs, batch_size, test_batch_size, color_list
             df_epoch.to_csv(args.logging_epoch_path, index=False)
 
             # save  plot
-            fig, ax1 = plt.subplots()
-            color = 'tab:red'
-            ax1.plot(losses, label='train loss', color=color)
+            # fig, ax1 = plt.subplots()
+            # color = 'tab:red'
+            # ax1.plot(losses, label='train loss', color=color)
             # plt.plot(all_val_losses, label='val')
 
-            ax1.set_xlabel('epochs')
-            ax1.set_ylabel('loss', color=color)
-            ax1.tick_params(axis='y', labelcolor=color)
-            color = 'tab:blue'
-            ax2 = ax1.twinx()
-            ax2.set_ylabel('test {}'.format(args.eval_metric),
-                           color='tab:blue')  # we already handled the x-label with ax1
-            ax2.plot(df_epoch['test_{}'.format(args.eval_metric)], color=color,
-                     label='test {}'.format(args.eval_metric))
-            ax2.tick_params(axis='y', labelcolor=color)
-            plt.legend(loc='best')
-            fig.tight_layout()  # otherwise the right y-label is slightly clipped
-            plt.legend()
-            plt.title(
-                f'best:{best_auc:3}')
-            plt.savefig(os.path.join(args.logging_path, 'loss_curve.png'))
-            plt.close()
+            # ax1.set_xlabel('epochs')
+            # ax1.set_ylabel('loss', color=color)
+            # ax1.tick_params(axis='y', labelcolor=color)
+            # color = 'tab:blue'
+            # ax2 = ax1.twinx()
+            # ax2.set_ylabel('test {}'.format(args.eval_metric),
+            #                color='tab:blue')  # we already handled the x-label with ax1
+            # ax2.plot(df_epoch['test_{}'.format(args.eval_metric)], color=color,
+            #          label='test {}'.format(args.eval_metric))
+            # ax2.tick_params(axis='y', labelcolor=color)
+            # plt.legend(loc='best')
+            # fig.tight_layout()  # otherwise the right y-label is slightly clipped
+            # plt.legend()
+            # plt.title(
+            #     f'best:{best_auc:3}')
+            # plt.savefig(os.path.join(args.logging_path, 'loss_curve.png'))
+            # plt.close()
+        per_epoch_time.append(time.time() - start)
+
+    total_time_taken = time.time() - t0
+    avg_time_epoch = np.mean(per_epoch_time)
+
+    return best_auc, total_time_taken, avg_time_epoch
