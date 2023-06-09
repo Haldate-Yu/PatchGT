@@ -6,13 +6,12 @@ from torch_geometric.datasets import TUDataset
 from model.patch_model import patchGT_TU
 from cluster import eigencluster_connect, group_number_count
 
-
 if __name__ == '__main__':
 
     args = Args()
     args = args.update_args()
 
-    dataset = TUDataset(root = 'dataset/', name=args.dataset, use_node_attr=True, use_edge_attr=True)
+    dataset = TUDataset(root='dataset/', name=args.dataset, use_node_attr=True, use_edge_attr=True)
     args.input_embd = dataset.num_node_features
     args.num_tasks = dataset.num_classes
     args.num_node_features = dataset.num_node_features
@@ -20,10 +19,9 @@ if __name__ == '__main__':
 
     idx = np.arange(len(dataset))
     np.random.shuffle(idx)
-    l=int(len(dataset)*0.9)
+    l = int(len(dataset) * 0.9)
     train_idx = idx[:l]
     test_idx = idx[l:]
-
 
     traingraphs = [g for g in dataset[train_idx]]
 
@@ -35,8 +33,7 @@ if __name__ == '__main__':
     if args.optimizer == 'auroc':
         args.imratio = float((dataloader_train.dataset.data.y.sum() / dataloader_train.dataset.data.y.shape[0]).numpy())
 
-
-    #preprocess for spectral cluster for training graphs
+    # preprocess for spectral cluster for training graphs
     print('process dataset...')
     color_list, color_number, center_list, max_length, sender_list, receiver_list = eigencluster_connect(traingraphs,
                                                                                                          args.cluster_bar,
@@ -55,18 +52,17 @@ if __name__ == '__main__':
     group_number = group_number_count(color_list, color_number, args.device)
     test_group_number = group_number_count(test_color_list, test_color_number, args.device)
     print("finish counting group number!")
-    #create models
+    # create models
     model = patchGT_TU(args, num_tasks=args.num_tasks, num_layer=args.gcn_num_layers,
-                                                   emb_dim=args.n_embd,
-                                                   gnn_type=args.gnn_type, coarse_gnn_type=args.coarse_gnn_type,
-                                                   virtual_node=args.virtual_node, residual=args.residual,
-                                                   drop_ratio=args.feature_drop, att_drop=args.attn_pdrop, JK="last",
-                                                   graph_pooling="mean", cls_token=args.cls_token,
-                                                   num_heads=args.n_head, attention_layers=args.n_layer,
-                                                   patch_gcn_num_layers=args.patch_gcn_num_layers, in_edge_channels=4,
-                                                   patch_pooling=args.coarse_pooling,
-                                                   device=args.device, node_dim = args.num_node_features)
-
+                       emb_dim=args.n_embd,
+                       gnn_type=args.gnn_type, coarse_gnn_type=args.coarse_gnn_type,
+                       virtual_node=args.virtual_node, residual=args.residual,
+                       drop_ratio=args.feature_drop, att_drop=args.attn_pdrop, JK="last",
+                       graph_pooling="mean", cls_token=args.cls_token,
+                       num_heads=args.n_head, attention_layers=args.n_layer,
+                       patch_gcn_num_layers=args.patch_gcn_num_layers, in_edge_channels=4,
+                       patch_pooling=args.coarse_pooling,
+                       device=args.device, node_dim=args.num_node_features)
 
     model.to(args.device)
     args.model = model.__class__.__name__

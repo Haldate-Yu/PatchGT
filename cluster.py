@@ -15,13 +15,13 @@ import scipy.sparse as sp
 from scipy.sparse import csgraph
 
 
-def eigencluster_connect(dataset, tresh, device, normalized = True, patch_self_loop = False, autok = False, max_cluster = 6,
-                         fixed_k = False, constant_k = 3):
+def eigencluster_connect(dataset, tresh, device, normalized=True, patch_self_loop=False, autok=False, max_cluster=6,
+                         fixed_k=False, constant_k=3):
     def find_k(vals, max):
         if len(vals) > 1:
             m = min(max, len(vals))
             if m == len(vals):
-                m = m-1
+                m = m - 1
 
             s = []
             for i in range(m):
@@ -29,7 +29,6 @@ def eigencluster_connect(dataset, tresh, device, normalized = True, patch_self_l
             s = np.array(s)
 
             k = np.argmax(s)
-
 
             return k + 1
         else:
@@ -49,11 +48,12 @@ def eigencluster_connect(dataset, tresh, device, normalized = True, patch_self_l
             glist.append((s, t))
 
         return adj, glist
+
     def is_connected(data):
         adj = to_scipy_sparse_matrix(data.edge_index, num_nodes=data.num_nodes)
 
         num_components, component = sp.csgraph.connected_components(adj)
-        if num_components ==1:
+        if num_components == 1:
             return True
         else:
             return False
@@ -66,22 +66,21 @@ def eigencluster_connect(dataset, tresh, device, normalized = True, patch_self_l
     else:
         print('start clusterting......, the constant number of cluster is {}'.format(constant_k))
 
-    color_list=[]
-    kl=[]
+    color_list = []
+    kl = []
     center_list = []
     sender_list = []
     receiver_list = []
-    #group_number_list = []
+    # group_number_list = []
     l = len(dataset)
     max_length = 1
     for i in tqdm(range(l)):
-        g=dataset[i]
+        g = dataset[i]
         edge_index = g.edge_index
         num_nodes = g.num_nodes
         edge_index = edge_index.numpy()
 
         A, elist = index_adj(edge_index, num_nodes)
-
 
         # graph laplacian
         if not normalized:
@@ -91,15 +90,13 @@ def eigencluster_connect(dataset, tresh, device, normalized = True, patch_self_l
         else:
             L = csgraph.laplacian(A, normed=True)
 
-
         # eigenvalues and eigenvectors
         vals, vecs = np.linalg.eig(L)
-        #only keep real part
+        # only keep real part
         vals = vals.real
         vecs = vecs.real
         # if len(vals) < 3:
         #     continue
-
 
         vecs = vecs[:, np.argsort(vals)]
         vals = vals[np.argsort(vals)]
@@ -107,11 +104,11 @@ def eigencluster_connect(dataset, tresh, device, normalized = True, patch_self_l
 
         if not autok and not fixed_k:
             kk = 1
-            for k in range(1,num_nodes):
+            for k in range(1, num_nodes):
 
-                r= vals[k]
+                r = vals[k]
                 if r > tresh:
-                    kk =k
+                    kk = k
                     break
 
         elif not fixed_k and autok:
@@ -120,11 +117,9 @@ def eigencluster_connect(dataset, tresh, device, normalized = True, patch_self_l
         else:
             kk = min(constant_k, len(vals))
 
-
-        #check max_Length
-        if kk>max_length:
+        # check max_Length
+        if kk > max_length:
             max_length = kk
-
 
         kmeans = KMeans(n_clusters=kk)
         try:
@@ -134,31 +129,29 @@ def eigencluster_connect(dataset, tresh, device, normalized = True, patch_self_l
 
         colors = kmeans.labels_
 
+        # only take first 3 dim of centers
+        centers = kmeans.cluster_centers_[:, :3]  # should be 1:3
+        if len(vals) < 3:  # 2
 
+            dist = 3 - len(vals)  # 2
+            centers = np.concatenate((centers, np.zeros((kk, dist))), axis=1)
 
-        #only take first 3 dim of centers
-        centers = kmeans.cluster_centers_[:,:3] #should be 1:3
-        if len(vals) < 3:  #2
-
-            dist = 3 - len(vals) #2
-            centers = np.concatenate((centers, np.zeros((kk,dist))),axis=1)
-
-        #senders and receivers for subgraph
-        senders =[]
-        receivers =[]
+        # senders and receivers for subgraph
+        senders = []
+        receivers = []
         if kk > 1:
-            for i in range(kk-1):
+            for i in range(kk - 1):
                 indices_s = np.where(colors == i)[0]
-                for j in range(i+1,kk):
+                for j in range(i + 1, kk):
                     indices_r = np.where(colors == j)[0]
-                    indices_all = torch.tensor(np.concatenate((indices_s,indices_r)), dtype=torch.int64)
+                    indices_all = torch.tensor(np.concatenate((indices_s, indices_r)), dtype=torch.int64)
                     sg = g.subgraph(indices_all)
                     if is_connected(sg):
                         senders.append(i)
                         senders.append(j)
                         receivers.append(j)
                         receivers.append(i)
-                        #add self_loop
+                        # add self_loop
                     if patch_self_loop:
                         senders.append(i)
                         senders.append(j)
@@ -168,40 +161,29 @@ def eigencluster_connect(dataset, tresh, device, normalized = True, patch_self_l
             senders.append(0)
             receivers.append(0)
 
-
-
-
-
-
-
-        color_list.append(torch.tensor(colors,dtype=torch.int64).to(device))
+        color_list.append(torch.tensor(colors, dtype=torch.int64).to(device))
         kl.append(kk)
-        center_list.append(torch.tensor(centers,dtype=torch.float32).to(device))
+        center_list.append(torch.tensor(centers, dtype=torch.float32).to(device))
         sender_list.append(senders)
         receiver_list.append(receivers)
 
     return color_list, kl, center_list, max_length, sender_list, receiver_list
 
 
-def group_number_count(color_list,kl, device):
+def group_number_count(color_list, kl, device):
     group_number_list = []
     for i in range(len(color_list)):
         color = color_list[i]
-        kk=kl[i]
+        kk = kl[i]
         colors = color.cpu().numpy()
         count_arr = np.bincount(colors)
-        if max(colors) == kk-1:
+        if max(colors) == kk - 1:
             group_count = [count_arr[i] for i in range(kk)]
         else:
-            dis = kk-1-max(colors)
+            dis = kk - 1 - max(colors)
             group_count = [count_arr[i] for i in range(max(colors))]
             for j in range(dis):
                 group_count.append(0)
             print('make up for graph {}'.format(i))
         group_number_list.append(torch.tensor(np.array(group_count), device=device))
     return group_number_list
-
-
-
-
-

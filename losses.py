@@ -44,7 +44,7 @@ class AUCMLoss(torch.nn.Module):
                self.p * torch.mean((y_pred - self.b) ** 2 * (0 == y_true).float()) + \
                2 * self.alpha * (self.p * (1 - self.p) * self.margin + \
                                  torch.mean((self.p * y_pred * (0 == y_true).float() - (1 - self.p) * y_pred * (
-                                             1 == y_true).float()))) - \
+                                         1 == y_true).float()))) - \
                self.p * (1 - self.p) * self.alpha ** 2
         return loss
 
@@ -94,7 +94,7 @@ class AUCM_MultiLabel(torch.nn.Module):
                    self.p[idx] * torch.mean((y_pred_i - self.b[idx]) ** 2 * (0 == y_true_i).float()) + \
                    2 * self.alpha[idx] * (self.p[idx] * (1 - self.p[idx]) + \
                                           torch.mean((self.p[idx] * y_pred_i * (0 == y_true_i).float() - (
-                                                      1 - self.p[idx]) * y_pred_i * (1 == y_true_i).float()))) - \
+                                                  1 - self.p[idx]) * y_pred_i * (1 == y_true_i).float()))) - \
                    self.p[idx] * (1 - self.p[idx]) * self.alpha[idx] ** 2
             total_loss += loss
         return total_loss
@@ -199,9 +199,6 @@ class FocalLoss(torch.nn.Module):
         pt = torch.exp(-BCE_loss)
         F_loss = at * (1 - pt) ** self.gamma * BCE_loss
         return F_loss.mean()
-
-
-
 
 
 class PESG(torch.optim.Optimizer):
@@ -327,7 +324,7 @@ class PESG(torch.optim.Optimizer):
                 if p.grad is None:
                     continue
                 p.data = p.data - group['lr'] * (torch.clamp(p.grad.data, -clip_value, clip_value) + 1 / gamma * (
-                            p.data - model_ref[i].data) + weight_decay * p.data)
+                        p.data - model_ref[i].data) + weight_decay * p.data)
                 model_acc[i].data = model_acc[i].data + p.data
 
             alpha.data = alpha.data + group['lr'] * (2 * (m + b.data - a.data) - 2 * alpha.data)
