@@ -125,7 +125,7 @@ class Args:
         args.current_model_save_path = args.model_save_path
         args.logging_epoch_path = args.logging_path + 'epoch_history.csv'
 
-        if not os.path.isdir(args.logging_path):
-            os.makedirs(args.logging_path)
+        # if not os.path.isdir(args.logging_path):
+        #     os.makedirs(args.logging_path)
 
         return args

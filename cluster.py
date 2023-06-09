@@ -59,12 +59,12 @@ def eigencluster_connect(dataset, tresh, device, normalized=True, patch_self_loo
             return False
 
     if not autok and not fixed_k:
-        print('start clusterting......, the tresh hold ratio is {}'.format(tresh))
+        print('start clustering......, the threshold ratio is {}'.format(tresh))
 
     elif not fixed_k and autok:
-        print('start clusterting......, the autok maximum cluster is {}'.format(max_cluster))
+        print('start clustering......, the autok maximum cluster is {}'.format(max_cluster))
     else:
-        print('start clusterting......, the constant number of cluster is {}'.format(constant_k))
+        print('start clustering......, the constant number of cluster is {}'.format(constant_k))
 
     color_list = []
     kl = []

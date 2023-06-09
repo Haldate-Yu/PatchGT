@@ -176,8 +176,10 @@ def test(args, epoch, dataloader_test, test_batch_size, test_color_list, test_ce
     y_pred_record = torch.cat(y_pred_record, dim=0)
     # rocauc = eval_rocauc(y_pred_record, y_true_record)
     rocauc_ap = evaluator.eval({'y_true': y_true_record, 'y_pred': y_pred_record})[args.eval_metric]
-    print(
-        'Epoch: {}/{}, test acc: {:.6f}, test {}:{:.6f} '.format(epoch, args.epochs, acc, args.eval_metric, rocauc_ap))
+
+    if epoch % 10 == 0:
+        print('Epoch: {}/{}, test acc: {:.6f}, test {}:{:.6f} '.format(epoch, args.epochs, acc, args.eval_metric,
+                                                                       rocauc_ap))
     return acc, rocauc_ap
 
 
@@ -188,8 +190,8 @@ def train(args, traingraphs, testgraphs, batch_size, test_batch_size, color_list
     # create optimizer
     optimizer = {}
 
-    with open(os.path.join(args.logging_path, 'args.txt'), 'w') as f:
-        json.dump(args.__dict__, f, indent=2)
+    # with open(os.path.join(args.logging_path, 'args.txt'), 'w') as f:
+    #     json.dump(args.__dict__, f, indent=2)
 
     if args.optimizer == 'adam':
         optimizer['model'] = optim.Adam(model.parameters(), lr=args.lr)
@@ -204,7 +206,7 @@ def train(args, traingraphs, testgraphs, batch_size, test_batch_size, color_list
         optimizer['model'] = PESG(model=model, a=loss_fn.a, b=loss_fn.b, alpha=loss_fn.alpha, lr=args.lr,
                                   device=args.device)
 
-    log_history = defaultdict(list)
+    # log_history = defaultdict(list)
 
     # training process
     epoch = 0
@@ -243,7 +245,8 @@ def train(args, traingraphs, testgraphs, batch_size, test_batch_size, color_list
             args.memory_usage = mem
 
         epoch += 1
-        print('Epoch: {}/{}, train loss: {:.6f}'.format(epoch, args.epochs, loss.cpu().item()))
+        if epoch % 10 == 0:
+            print('Epoch: {}/{}, train loss: {:.6f}'.format(epoch, args.epochs, loss.cpu().item()))
         if epoch % args.epochs_eval == 0:
             acc, rocauc = test(args, epoch, dataloader_test, test_batch_size, test_color_list, test_center_list,
                                test_color_number, model,
@@ -251,13 +254,13 @@ def train(args, traingraphs, testgraphs, batch_size, test_batch_size, color_list
                                test_group_number)
             if rocauc > best_auc:
                 best_auc = rocauc
-                torch.save(model.state_dict(), os.path.join(args.logging_path, 'best_model'))
-            log_history['test_acc'].append(acc)
-            log_history['test_{}'.format(args.eval_metric)].append(rocauc)
-            df_epoch = pd.DataFrame()
-            df_epoch['test_acc'] = np.array(log_history['test_acc'])
-            df_epoch['test_{}'.format(args.eval_metric)] = np.array(log_history['test_{}'.format(args.eval_metric)])
-            df_epoch.to_csv(args.logging_epoch_path, index=False)
+                # torch.save(model.state_dict(), os.path.join(args.logging_path, 'best_model'))
+            # log_history['test_acc'].append(acc)
+            # log_history['test_{}'.format(args.eval_metric)].append(rocauc)
+            # df_epoch = pd.DataFrame()
+            # df_epoch['test_acc'] = np.array(log_history['test_acc'])
+            # df_epoch['test_{}'.format(args.eval_metric)] = np.array(log_history['test_{}'.format(args.eval_metric)])
+            # df_epoch.to_csv(args.logging_epoch_path, index=False)
 
             # save  plot
             # fig, ax1 = plt.subplots()

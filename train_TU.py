@@ -153,8 +153,8 @@ def test(args, epoch, dataloader_test, test_batch_size, test_color_list, test_ce
         correct = correct + pred.eq(y_true).sum().item()
 
     acc = correct / len(dataloader_test.dataset)
-
-    print('Epoch: {}/{}, test acc: {:.6f}'.format(epoch, args.epochs, acc))
+    if epoch % 10 == 0:
+        print('Epoch: {}/{}, test acc: {:.6f}'.format(epoch, args.epochs, acc))
     return acc
 
 
@@ -165,8 +165,8 @@ def train(args, traingraphs, testgraphs, batch_size, test_batch_size, color_list
     # create optimizer
     optimizer = {}
 
-    with open(os.path.join(args.logging_path, 'args.txt'), 'w') as f:
-        json.dump(args.__dict__, f, indent=2)
+    # with open(os.path.join(args.logging_path, 'args.txt'), 'w') as f:
+    #     json.dump(args.__dict__, f, indent=2)
 
     if args.optimizer == 'adam':
         optimizer['model'] = optim.Adam(model.parameters(), lr=args.lr)
@@ -218,7 +218,8 @@ def train(args, traingraphs, testgraphs, batch_size, test_batch_size, color_list
             args.memory_usage = mem
 
         epoch += 1
-        print('Epoch: {}/{}, train loss: {:.6f}'.format(epoch, args.epochs, loss.cpu().item()))
+        if epoch % 10 == 0:
+            print('Epoch: {}/{}, train loss: {:.6f}'.format(epoch, args.epochs, loss.cpu().item()))
         if epoch % args.epochs_eval == 0:
             acc = test(args, epoch, dataloader_test, test_batch_size, test_color_list, test_center_list,
                        test_color_number, model,
@@ -230,7 +231,7 @@ def train(args, traingraphs, testgraphs, batch_size, test_batch_size, color_list
             df_epoch = pd.DataFrame()
             df_epoch['test_acc'] = np.array(log_history['test_acc'])
             # df_epoch['test_{}'.format(args.eval_metric)] = np.array(log_history['test_{}'.format(args.eval_metric)])
-            df_epoch.to_csv(args.logging_epoch_path, index=False)
+            # df_epoch.to_csv(args.logging_epoch_path, index=False)
 
             # save  plot
             # fig, ax1 = plt.subplots()
