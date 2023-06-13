@@ -31,7 +31,7 @@ class Args:
                                  help='whether to load dataset')
 
         # eigen cluster:
-        self.parser.add_argument('--cluster_bar', type=float, default=0.2, help='cluster eigen value threshhold')
+        self.parser.add_argument('--cluster_bar', type=float, default=0.2, help='cluster eigen value threshold')
 
         self.parser.add_argument('--autok', default=False, action='store_true',
                                  help='whether to use autok, make bar useless')
