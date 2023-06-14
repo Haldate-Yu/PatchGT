@@ -14,6 +14,8 @@ warnings.filterwarnings("ignore")
 def run(args):
     dataset = TUDataset(root='../data/', name=args.dataset, use_node_attr=True, use_edge_attr=True)
     args.dataset_type = 'TU'
+    # process for IMDBs
+    dataset = utils.TU_Preprocess(dataset)
     args.input_embd = dataset.num_node_features
     args.num_tasks = dataset.num_classes
     args.num_node_features = dataset.num_node_features

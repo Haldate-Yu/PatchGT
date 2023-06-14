@@ -7,6 +7,8 @@ import csv
 import random
 import pickle
 from pynvml import *
+from torch_geometric.utils import degree
+import torch_geometric.transforms as T
 
 from sklearn.metrics import roc_auc_score, average_precision_score
 import numpy as np
@@ -66,7 +68,7 @@ def results_to_file(args, test_acc, test_std,
     elif args.dataset_type == 'OGB':
         headerList = ["Method", "N_Heads", "Batch_Size",
                       "Encoder_Layers", "Hidden_Dims", "GNN_Type"
-                      "Model_Params", "Memory_Usage(MB)",
+                                                       "Model_Params", "Memory_Usage(MB)",
                       "::::::::",
                       "test_auc", "test_std",
                       "total_time", "total_time_std",
@@ -93,6 +95,35 @@ def results_to_file(args, test_acc, test_std,
             avg_time, avg_time_std
         )
         f.write(line)
+
+
+class NormalizedDegree(object):
+    def __init__(self, mean, std):
+        self.mean = mean
+        self.std = std
+
+    def __call__(self, data):
+        deg = degree(data.edge_index[0], dtype=torch.float)
+        deg = (deg - self.mean) / self.std
+        data.x = deg.view(-1, 1)
+        return data
+
+
+def TU_Preprocess(dataset):
+    if dataset.data.x is None:
+        max_degree = 0
+        degs = []
+        for data in dataset:
+            degs += [degree(data.edge_index[0], dtype=torch.long)]
+            max_degree = max(max_degree, degs[-1].max().item())
+
+        if max_degree < 1000:
+            dataset.transform = T.OneHotDegree(max_degree)
+        else:
+            deg = torch.cat(degs, dim=0).to(torch.float)
+            mean, std = deg.mean().item(), deg.std().item()
+            dataset.transform = NormalizedDegree(mean, std)
+    return dataset
 
 
 def create_models(args):
