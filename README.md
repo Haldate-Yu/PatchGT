@@ -39,3 +39,5 @@ python run_TU.py \
 args.py中直接锁定cuda:0，运行时需手动指定cuda，CUDA_VISIBLE_DEVICES=gpu_id python xxx.py
 
 在整体代码规范化后，新增添了几个参数，其中值得注意的是args.runs，其为重复实验次数，通过多次重复去平均值并加以记录，得到最终的实验结果。实验结果可以在results/中查看。
+
+PatchGT中跑的是原文设置，没有对参数进行过多调整；
