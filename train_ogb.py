@@ -215,6 +215,7 @@ def train(args, traingraphs, testgraphs, batch_size, test_batch_size, color_list
 
     t0 = time.time()
     per_epoch_time = []
+    test_time = []
 
     while epoch < args.epochs:
         start = time.time()
@@ -248,10 +249,12 @@ def train(args, traingraphs, testgraphs, batch_size, test_batch_size, color_list
         if epoch % 10 == 0:
             print('Epoch: {}/{}, train loss: {:.6f}'.format(epoch, args.epochs, loss.cpu().item()))
         if epoch % args.epochs_eval == 0:
+            t_test_start = time.time()
             acc, rocauc = test(args, epoch, dataloader_test, test_batch_size, test_color_list, test_center_list,
                                test_color_number, model,
                                test_max_length, x_dim, evaluator, test_sender_list, test_receiver_list,
                                test_group_number)
+            test_time.append(time.time() - t_test_start)
             if rocauc > best_auc:
                 best_auc = rocauc
                 # torch.save(model.state_dict(), os.path.join(args.logging_path, 'best_model'))
@@ -289,5 +292,6 @@ def train(args, traingraphs, testgraphs, batch_size, test_batch_size, color_list
 
     total_time_taken = time.time() - t0
     avg_time_epoch = np.mean(per_epoch_time)
+    avg_test_time = np.mean(test_time)
 
-    return best_auc, total_time_taken, avg_time_epoch
+    return best_auc, total_time_taken, avg_time_epoch, avg_test_time

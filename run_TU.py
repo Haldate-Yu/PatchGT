@@ -75,34 +75,43 @@ def run(args):
 
     evaluator = None
 
-    best_acc, total_time, avg_time = train(args, traingraphs, testgraphs, args.batch_size, args.test_batch_size,
-                                           color_list, center_list, color_number,
-                                           model, test_color_list, test_color_number, test_center_list, test_max_length,
-                                           max_length=max_length,
-                                           x_dim=args.n_embd, evaluator=evaluator, sender_list=sender_list,
-                                           receiver_list=receiver_list, test_sender_list=test_sender_list,
-                                           test_receiver_list=test_receiver_list,
-                                           group_number=group_number, test_group_number=test_group_number)
-    return best_acc, total_time, avg_time
+    best_acc, total_time, avg_time, avg_test_time = train(args, traingraphs, testgraphs, args.batch_size,
+                                                          args.test_batch_size,
+                                                          color_list, center_list, color_number,
+                                                          model, test_color_list, test_color_number, test_center_list,
+                                                          test_max_length,
+                                                          max_length=max_length,
+                                                          x_dim=args.n_embd, evaluator=evaluator,
+                                                          sender_list=sender_list,
+                                                          receiver_list=receiver_list,
+                                                          test_sender_list=test_sender_list,
+                                                          test_receiver_list=test_receiver_list,
+                                                          group_number=group_number,
+                                                          test_group_number=test_group_number)
+    return best_acc, total_time, avg_time, avg_test_time
 
 
 if __name__ == '__main__':
     args = Args()
     args = args.update_args()
+    seed = args.seed
 
-    utils.seed_everything(args.seed)
-
-    tests, total_time_list, avg_time_list = [], [], []
+    tests, total_time_list, avg_time_list, test_time_list = [], [], [], []
 
     for run_id in range(args.runs):
         print("Now RUNNING: {}".format(run_id))
-        final_test, total_time, avg_time = run(args)
+        args.seed = seed + run_id
+        utils.seed_everything(args.seed)
+
+        final_test, total_time, avg_time, test_time = run(args)
 
         tests.append(final_test)
         total_time_list.append(total_time)
         avg_time_list.append(avg_time)
+        test_time_list.append(test_time)
 
     # final results
     utils.results_to_file(args, np.mean(tests), np.std(tests),
                           np.mean(total_time_list), np.std(total_time_list),
-                          np.mean(avg_time_list), np.std(avg_time_list))
+                          np.mean(avg_time_list), np.std(avg_time_list),
+                          np.mean(test_time_list), np.std(test_time_list))
